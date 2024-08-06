@@ -72,7 +72,6 @@ class ObjMesh
 					break;
 			}
 		}
-        alert(this.vpos.length)
 	}
 	
 	// Returns the bounding box of the object
@@ -87,8 +86,6 @@ class ObjMesh
 				if ( max[j] < this.vpos[i][j] ) max[j] = this.vpos[i][j];
 			}
 		}
-        alert(min)
-        alert(max)
 		return { min: min, max: max };
 	}
 	

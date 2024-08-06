@@ -160,7 +160,10 @@
         
         // Draw the curve and then the line segments that connect the control points.
         var nrmTrans = [ mv[0],mv[1],mv[2], mv[4],mv[5],mv[6], mv[8],mv[9],mv[10] ];
-        meshDrawer.draw( mvp, mv, nrmTrans );
+        for (let pendulum of simulation.pendulums){
+            meshDrawer.draw( mvp, mv, nrmTrans, pendulum.base );
+        }
+        //meshDrawer.draw( mvp, mv, nrmTrans );
         if ( showBox.checked ) {
             boxDrawer.draw( mvp );
         }
@@ -467,6 +470,20 @@
             document.getElementById('rotation-speed').disabled = true;
         }
     }
+
+    var simulation = new Simulation();
+    function SimulationStep( param )
+    {
+        if ( param.checked ) {
+            timer = setInterval( function() {
+                    simulation.update();
+                    DrawScene();
+                }, 30
+            );
+        } else {
+            clearInterval( timer );
+        }
+    }
     
     function ShowTexture( param )
     {
@@ -500,7 +517,7 @@
                 ];
                 var maxSize = Math.max( size[0], size[1], size[2] );
                 var scale = 1/maxSize;
-                mesh.shiftAndScale( shift, scale );
+                mesh.shiftAndScale( shift, scale/2 );
                 var buffers = mesh.getVertexBuffers();
                 meshDrawer.setMesh( buffers.positionBuffer, buffers.texCoordBuffer, buffers.normalBuffer );
                 DrawScene();
@@ -652,6 +669,7 @@
     <div class="control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
     <div class="control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
     <div class="control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
+    <div class="control"><input id="start-simulation" name="start-simulation" type="checkbox" onchange="SimulationStep(this)"/><label for="start-simulation"> Simulation</label></div>
     <div class="control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
     <div class="control"><span id="shininess-label">Shininess:</span><span id="shininess-value">1</span><input id="shininess-exp" type="range" min="0" max="100" value="50" oninput="SetShininess(this)"/></div>
     </div>

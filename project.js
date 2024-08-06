@@ -82,6 +82,8 @@ class MeshDrawer
 	getShader(){
 		var attributes = `
 			attribute vec3 a_position;
+			uniform vec3 u_traslation;
+
 			uniform mat4 u_transform;
 
 			attribute vec3 a_normal;
@@ -107,6 +109,7 @@ class MeshDrawer
 			${attributes} 
 			
 			void main() {
+				vec3 a_position = a_position + u_traslation;
 				v_normal = a_normal;
 				v_position = a_position;
 				${gl_position}
@@ -214,10 +217,13 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal )
+	draw( matrixMVP, matrixMV, matrixNormal, shift=[0, 0, 0] )
 	{
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram(this.program);
+
+		var traslation = gl.getUniformLocation(this.program, "u_traslation");
+		gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
 
 		// Set up the matrixMVP
 		var transUniform = gl.getUniformLocation(this.program, "u_transform");
@@ -311,5 +317,49 @@ class MeshDrawer
 	{
 		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify the shininess.
 		this.shininess = shininess;
+	}
+}
+
+GRAVITY = 9.81; // m/s^2
+PENDULUM_LENGTH = 1; // m
+
+class Pendulum
+{
+	constructor(base=[0.5, 0, 0.5]) //
+	{
+		this.base = base;
+		this.length = PENDULUM_LENGTH;
+		this.angularVelocity = 0;
+		this.angle = 0;
+		this.x = undefined;
+		this.y = undefined;
+	}
+
+	computeCoord()
+	{
+		this.y = this.length * Math.cos(this.angle);
+		this.x = this.length * Math.sin(this.angle);
+	}
+
+	update()
+	{
+
+	}
+}
+
+class Simulation
+{
+	constructor(num_pendulums=2)
+	{
+		this.num_pendulums = num_pendulums;
+		this.pendulums = [];
+		for(let i = 0; i < this.num_pendulums; i++)
+			this.pendulums.push(new Pendulum([0, 0, 0.5-(i)]));
+	}
+
+	update()
+	{
+		for (let i = 0; i < this.num_pendulums; i++)
+			this.pendulums[i].update();
 	}
 }
