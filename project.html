@@ -160,8 +160,18 @@
         
         // Draw the curve and then the line segments that connect the control points.
         var nrmTrans = [ mv[0],mv[1],mv[2], mv[4],mv[5],mv[6], mv[8],mv[9],mv[10] ];
+        let nextBase = undefined;
         for (let pendulum of simulation.pendulums){
-            meshDrawer.draw( mvp, mv, nrmTrans, pendulum.base );
+            let base;
+            if (pendulum.base[2] == 0.5)
+                base = pendulum.base;
+            else
+                if (meshDrawer.swapyz)
+                    base = [nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
+                else
+                    base = [-nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
+            meshDrawer.draw( mvp, mv, nrmTrans, base, pendulum.angle );
+            nextBase = [pendulum.x, pendulum.y];
         }
         //meshDrawer.draw( mvp, mv, nrmTrans );
         if ( showBox.checked ) {
@@ -472,16 +482,17 @@
     }
 
     var simulation = new Simulation();
+    var timer2;
     function SimulationStep( param )
     {
         if ( param.checked ) {
-            timer = setInterval( function() {
+            timer2 = setInterval( function() {
                     simulation.update();
                     DrawScene();
-                }, 30
+                }, 50
             );
         } else {
-            clearInterval( timer );
+            clearInterval( timer2 );
         }
     }
     
@@ -525,7 +536,7 @@
             reader.readAsText( param.files[0] );
         }
     }
-    
+
     function LoadTexture( param )
     {
         if ( param.files && param.files[0] ) {
@@ -548,6 +559,20 @@
         var s = Math.pow(10,exp/25);
         document.getElementById('shininess-value').innerText = s.toFixed( s < 10 ? 2 : 0 );
         meshDrawer.setShininess(s);
+        DrawScene();
+    }
+
+    function SetMass( param )
+    {
+        MASS = param.value;
+        document.getElementById('mass-value').innerText = MASS;
+        DrawScene();
+    }
+    
+    function SetDt( param )
+    {
+        dt = param.value;
+        document.getElementById('dt-value').innerText = dt;
         DrawScene();
     }
     
@@ -671,7 +696,20 @@
     <div class="control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
     <div class="control"><input id="start-simulation" name="start-simulation" type="checkbox" onchange="SimulationStep(this)"/><label for="start-simulation"> Simulation</label></div>
     <div class="control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
-    <div class="control"><span id="shininess-label">Shininess:</span><span id="shininess-value">1</span><input id="shininess-exp" type="range" min="0" max="100" value="50" oninput="SetShininess(this)"/></div>
+    <div class="control">
+        <span id="shininess-label">Shininess:</span>
+        <span id="shininess-value">1</span>
+        <input id="shininess-exp" type="range" min="0" max="100" value="50" oninput="SetShininess(this)"/>
+    </div>
+    <div class="control">
+        <span id="mass-label">Mass:</span>
+        <span id="mass-value">1</span>
+        <input id="mass" type="range" min="0.5" max="10" value="1" oninput="SetMass(this)"/>
+    </div>
+    <div class="control">
+        <span id="dt-label">dt:</span>
+        <span id="dt-value">0.005</span>
+        <input id="dt-range" type="range" min="0.005" max="0.01" value="0.005" step="0.001" oninput="SetDt(this)"/></div>
     </div>
     <div class="control-group">
     <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>

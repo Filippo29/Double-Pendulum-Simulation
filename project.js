@@ -5,24 +5,9 @@
 function GetModelViewMatrix( translationX, translationY, translationZ, rotationX, rotationY )
 {
 	// [TO-DO] Modify the code below to form the transformation matrix.
-	var trans = [
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		translationX, translationY, translationZ, 1
-	];
-	var rotX = [
-		1, 0, 0, 0,
-		0, Math.cos(rotationX), Math.sin(rotationX), 0,
-		0, -Math.sin(rotationX), Math.cos(rotationX), 0,
-		0, 0, 0, 1
-	];
-	var rotY = [
-		Math.cos(rotationY), 0, -Math.sin(rotationY), 0,
-		0, 1, 0, 0,
-		Math.sin(rotationY), 0, Math.cos(rotationY), 0,
-		0, 0, 0, 1
-	];
+	let trans = translationMatrix(translationX, translationY, translationZ);
+	let rotX = XRotationMatrix(rotationX);
+	let rotY = YRotationMatrix(rotationY);
 	return MatrixMult(MatrixMult(trans, rotY), rotX);
 }
 
@@ -217,15 +202,17 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal, shift=[0, 0, 0] )
+	draw( matrixMVP, matrixMV, matrixNormal, shift=[0, 0, 0], angle=0 )
 	{
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram(this.program);
 
+		// Set up the traslation vector
 		var traslation = gl.getUniformLocation(this.program, "u_traslation");
 		gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
 
 		// Set up the matrixMVP
+		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz);
 		var transUniform = gl.getUniformLocation(this.program, "u_transform");
 		gl.uniformMatrix4fv(transUniform, false, matrixMVP);
 
@@ -320,19 +307,85 @@ class MeshDrawer
 	}
 }
 
-GRAVITY = 9.81; // m/s^2
+function translationMatrix(tx, ty, tz) {
+	return [
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		tx, ty, tz, 1
+	];
+}
+
+function XRotationMatrix(angle) {
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+	return [
+		1, 0, 0, 0,
+		0, c, s, 0,
+		0, -s, c, 0,
+		0, 0, 0, 1
+	];
+}
+
+function YRotationMatrix(angle) {
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+	return [
+		c, 0, -s, 0,
+		0, 1, 0, 0,
+		s, 0, c, 0,
+		0, 0, 0, 1
+	];
+}
+
+function ZRotationMatrix(angle) {
+	let c = Math.cos(angle);
+	let s = Math.sin(angle);
+	return [
+		c, s, 0, 0,
+		-s,  c, 0, 0,
+		0,  0, 1, 0,
+		0,  0, 0, 1
+	];
+}
+
+function createTransformationMatrix(modelViewMatrix, point, angle, swapyz) {
+	//point[2] += 0.1;
+	let translationToOrigin;
+    let translationBack;
+	let rotationMatrix;
+	if (swapyz){
+    	rotationMatrix = ZRotationMatrix(angle);
+		point = [point[0], point[2], point[1]];
+		translationToOrigin = translationMatrix(0, point[1]+0.5, 0);
+		translationBack = translationMatrix(0, -point[1]-0.5, 0);
+	}else{
+		rotationMatrix = YRotationMatrix(angle);
+		translationToOrigin = translationMatrix(0, 0, point[2]+0.5);
+		translationBack = translationMatrix(0, 0, -point[2]-0.5);
+	}
+    modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
+    modelViewMatrix = MatrixMult(modelViewMatrix, rotationMatrix);
+    modelViewMatrix = MatrixMult(modelViewMatrix, translationBack);
+	return modelViewMatrix;
+}
+
+GRAVITY = -9.81; // m/s^2
 PENDULUM_LENGTH = 1; // m
+MASS = 1;
+dt = 0.005; // s
 
 class Pendulum
 {
-	constructor(base=[0.5, 0, 0.5]) //
+	constructor(base=[0, 0, 0]) //
 	{
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
-		this.angle = 0;
+		this.angle = 0.4;
 		this.x = undefined;
 		this.y = undefined;
+		this.computeCoord()
 	}
 
 	computeCoord()
@@ -343,7 +396,10 @@ class Pendulum
 
 	update()
 	{
-
+		// Compute the new angle
+		this.angularVelocity += (MASS * GRAVITY / this.length * Math.sin(this.angle))*dt;
+		this.angle += this.angularVelocity;
+		this.computeCoord();
 	}
 }
 
@@ -354,7 +410,7 @@ class Simulation
 		this.num_pendulums = num_pendulums;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
-			this.pendulums.push(new Pendulum([0, 0, 0.5-(i)]));
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i]));
 	}
 
 	update()
