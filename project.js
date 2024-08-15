@@ -370,7 +370,7 @@ function createTransformationMatrix(modelViewMatrix, point, angle, swapyz) {
 	return modelViewMatrix;
 }
 
-GRAVITY = -9.81; // m/s^2
+GRAVITY = 9.81; // m/s^2
 PENDULUM_LENGTH = 1; // m
 MASS = 1;
 dt = 0.005; // s
@@ -382,7 +382,7 @@ class Pendulum
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
-		this.angle = 0.4;
+		this.angle = 1;
 		this.x = undefined;
 		this.y = undefined;
 		this.computeCoord()
@@ -394,9 +394,24 @@ class Pendulum
 		this.x = this.length * Math.sin(this.angle);
 	}
 
-	update()
+	update(index, pendulums)
 	{
 		// Compute the new angle
+		let angularAccel = 0;
+		if (index == 0){
+			let otherAngle = pendulums[1].angle;
+			let otherAngularVelocity = pendulums[1].angularVelocity;
+			angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity))/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
+		}else{
+			let otherAngle = pendulums[0].angle;
+			let otherAngularVelocity = pendulums[0].angularVelocity;
+			angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle)))/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
+		}
+		this.angularVelocity += angularAccel * dt;
+		this.angle += this.angularVelocity * dt;
+		this.computeCoord();
+		//alert(this.x + ", " + this.y);
+		return;
 		this.angularVelocity += (MASS * GRAVITY / this.length * Math.sin(this.angle))*dt;
 		this.angle += this.angularVelocity;
 		this.computeCoord();
@@ -416,6 +431,6 @@ class Simulation
 	update()
 	{
 		for (let i = 0; i < this.num_pendulums; i++)
-			this.pendulums[i].update();
+			this.pendulums[i].update(i, this.pendulums);
 	}
 }
