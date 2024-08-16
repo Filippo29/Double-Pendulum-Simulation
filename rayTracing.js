@@ -146,7 +146,10 @@ var screenQuad = {
 	{
 		gl.useProgram( prog );
 
-		gl.vertexAttrib1f(gl.getUniformLocation(prog, 'use_rt'), 1.0);
+		let loc = gl.getUniformLocation(prog, 'use_rt');
+		let aloc = gl.getAttribLocation(prog, 'a_use_rt');
+		gl.uniform1f(loc, 1.0);
+		gl.vertexAttrib1f(aloc, 1.0);
 
 		gl.uniformMatrix4fv( gl.getUniformLocation( prog, 'c2w' ), false, trans.camToWorld );
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.vbuf );
@@ -154,6 +157,20 @@ var screenQuad = {
 		gl.vertexAttribPointer( p, 3, gl.FLOAT, false, 0, 0 );
 		gl.enableVertexAttribArray( p );
 		gl.drawArrays( gl.TRIANGLES, 0, 6 );
+
+		gl.uniform1f(loc, 0.0);
+		gl.vertexAttrib1f(aloc, 0.0);
+		const line = new Float32Array([
+			-1, -1, -1,
+			1, 1, 2
+		]);
+		const lineBuff = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, lineBuff);
+		gl.bufferData(gl.ARRAY_BUFFER, line, gl.STATIC_DRAW);
+		const positionAttribLoc = gl.getAttribLocation(prog, 'p');
+		gl.vertexAttribPointer(positionAttribLoc, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(positionAttribLoc);
+		gl.drawArrays(gl.LINES, 0, 2);
 	}
 };
 

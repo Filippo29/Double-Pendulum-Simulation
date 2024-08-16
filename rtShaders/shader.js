@@ -4,27 +4,40 @@ var raytraceFS_header = `
 `;
 
 var raytraceFS_primary = `
+	uniform float use_rt;
+
 	varying vec3 ray_pos;
 	varying vec3 ray_dir;
 
 	void main()
 	{
-		Ray primary_ray;
-		primary_ray.pos = ray_pos;
-		primary_ray.dir = ray_dir;
-		gl_FragColor = RayTracer( primary_ray );
+		if ( use_rt < 0.5 ) {
+		 	gl_FragColor = vec4(1,0,0,1);
+		} else {
+			Ray primary_ray;
+			primary_ray.pos = ray_pos;
+			primary_ray.dir = ray_dir;
+			gl_FragColor = RayTracer( primary_ray );
+		}
 	}
 `;
 
 var raytraceVS = `
 attribute vec3 p;
+
+attribute float a_use_rt;
+
 uniform mat4 proj;
 uniform mat4 c2w;
 varying vec3 ray_pos;
 varying vec3 ray_dir;
 void main()
 {
-    gl_Position = proj * vec4(p,1);
+	if ( a_use_rt > 0.5 ) {
+    	gl_Position = proj * vec4(p,1);
+	} else {
+	 	gl_Position = proj * vec4(p,1);
+	}
 	vec4 rp = c2w * vec4(0,0,0,1);
 	ray_pos = rp.xyz;
 	vec4 rd = c2w * vec4(p,1);
