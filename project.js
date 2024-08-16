@@ -202,7 +202,7 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal, shift=[0, 0, 0], angle=0 )
+	draw( matrixMVP, matrixMV, matrixNormal, i, shift=[0, 0, 0], angle=0 )
 	{
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram(this.program);
@@ -212,7 +212,7 @@ class MeshDrawer
 		gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
 
 		// Set up the matrixMVP
-		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz);
+		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz, i);
 		var transUniform = gl.getUniformLocation(this.program, "u_transform");
 		gl.uniformMatrix4fv(transUniform, false, matrixMVP);
 
@@ -349,8 +349,7 @@ function ZRotationMatrix(angle) {
 	];
 }
 
-function createTransformationMatrix(modelViewMatrix, point, angle, swapyz) {
-	//point[2] += 0.1;
+function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, i) {
 	let translationToOrigin;
     let translationBack;
 	let rotationMatrix;
@@ -361,8 +360,9 @@ function createTransformationMatrix(modelViewMatrix, point, angle, swapyz) {
 		translationBack = translationMatrix(0, -point[1]-0.5, 0);
 	}else{
 		rotationMatrix = YRotationMatrix(angle);
-		translationToOrigin = translationMatrix(0, 0, point[2]+0.5);
-		translationBack = translationMatrix(0, 0, -point[2]-0.5);
+		let trasl = i == 0 ? point[2]+0.5 : 0;
+		translationToOrigin = translationMatrix(0, 0, trasl);
+		translationBack = translationMatrix(0, 0, -trasl);
 	}
     modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
     modelViewMatrix = MatrixMult(modelViewMatrix, rotationMatrix);
@@ -373,16 +373,17 @@ function createTransformationMatrix(modelViewMatrix, point, angle, swapyz) {
 GRAVITY = 9.81; // m/s^2
 PENDULUM_LENGTH = 1; // m
 MASS = 1;
+DAMPING = 0.1;
 dt = 0.005; // s
 
 class Pendulum
 {
-	constructor(base=[0, 0, 0]) //
+	constructor(base=[0, 0, 0], initialAngle=1)
 	{
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
-		this.angle = 1;
+		this.angle = initialAngle;
 		this.x = undefined;
 		this.y = undefined;
 		this.computeCoord()
@@ -401,19 +402,14 @@ class Pendulum
 		if (index == 0){
 			let otherAngle = pendulums[1].angle;
 			let otherAngularVelocity = pendulums[1].angularVelocity;
-			angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity))/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
+			angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
 		}else{
 			let otherAngle = pendulums[0].angle;
 			let otherAngularVelocity = pendulums[0].angularVelocity;
-			angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle)))/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
+			angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
 		}
 		this.angularVelocity += angularAccel * dt;
 		this.angle += this.angularVelocity * dt;
-		this.computeCoord();
-		//alert(this.x + ", " + this.y);
-		return;
-		this.angularVelocity += (MASS * GRAVITY / this.length * Math.sin(this.angle))*dt;
-		this.angle += this.angularVelocity;
 		this.computeCoord();
 	}
 }
@@ -425,7 +421,7 @@ class Simulation
 		this.num_pendulums = num_pendulums;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
-			this.pendulums.push(new Pendulum([0, 0, 0.5-i]));
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i], i*2));
 	}
 
 	update()
