@@ -177,7 +177,7 @@
         
         // Draw the curve and then the line segments that connect the control points.
         var nrmTrans = [ mv[0],mv[1],mv[2], mv[4],mv[5],mv[6], mv[8],mv[9],mv[10] ];
-        let nextBase = undefined;
+        let nextBase = [0, 0];
         let i = 1;
         for (let pendulum of simulation.pendulums){
             let base;
@@ -188,7 +188,7 @@
                     base = [nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
                 else
                     base = [-nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
-            meshDrawer.draw( mvp, mv, nrmTrans, i-1, base, pendulum.angle );
+            meshDrawer.draw( mvp, mv, nrmTrans, i-1, base, pendulum.angle, [nextBase[0], 0, nextBase[1]] );
             console.log("Pendulum: ", i, " Base: ", base, " NextBase: ", nextBase);
             i++;
             nextBase = [pendulum.x, pendulum.y];

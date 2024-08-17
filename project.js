@@ -202,17 +202,20 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal, i, shift=[0, 0, 0], angle=0 )
+	draw( matrixMVP, matrixMV, matrixNormal, i, shift=[0, 0, 0], angle=0, lastBase=[0, 0, 0] )
 	{
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram(this.program);
 
 		// Set up the traslation vector
 		var traslation = gl.getUniformLocation(this.program, "u_traslation");
-		gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
+		if (i == 0)
+			gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
+		else
+			gl.uniform3f(traslation, 0, 0, -0.5);
 
 		// Set up the matrixMVP
-		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz, i);
+		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz, lastBase, i);
 		var transUniform = gl.getUniformLocation(this.program, "u_transform");
 		gl.uniformMatrix4fv(transUniform, false, matrixMVP);
 
@@ -349,10 +352,21 @@ function ZRotationMatrix(angle) {
 	];
 }
 
-function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, i) {
+function identityMatrix(dim) {
+	let matrix = [];
+	for (let i = 0; i < dim; i++){
+		for (let j = 0; j < dim; j++){
+			matrix.push(i == j ? 1 : 0);
+		}
+	}
+	return matrix;
+}
+
+function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, lastBase, i) {
 	let translationToOrigin;
     let translationBack;
 	let rotationMatrix;
+	let traslationToLastBase = identityMatrix(4);
 	if (swapyz){
     	rotationMatrix = ZRotationMatrix(angle);
 		point = [point[0], point[2], point[1]];
@@ -361,12 +375,15 @@ function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, i) {
 	}else{
 		rotationMatrix = YRotationMatrix(angle);
 		let trasl = i == 0 ? point[2]+0.5 : 0;
+		if (i == 0) console.log(lastBase);
 		translationToOrigin = translationMatrix(0, 0, trasl);
 		translationBack = translationMatrix(0, 0, -trasl);
+		if (i!=0) traslationToLastBase = translationMatrix(-lastBase[0], lastBase[1], 0);
 	}
     modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
     modelViewMatrix = MatrixMult(modelViewMatrix, rotationMatrix);
     modelViewMatrix = MatrixMult(modelViewMatrix, translationBack);
+	modelViewMatrix = MatrixMult(modelViewMatrix, traslationToLastBase);
 	return modelViewMatrix;
 }
 
@@ -421,7 +438,7 @@ class Simulation
 		this.num_pendulums = num_pendulums;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
-			this.pendulums.push(new Pendulum([0, 0, 0.5-i], i*2));
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i], -1+i*3));
 	}
 
 	update()
