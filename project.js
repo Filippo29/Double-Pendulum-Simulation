@@ -375,15 +375,17 @@ function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, lastB
 	}else{
 		rotationMatrix = YRotationMatrix(angle);
 		let trasl = i == 0 ? point[2]+0.5 : 0;
-		if (i == 0) console.log(lastBase);
 		translationToOrigin = translationMatrix(0, 0, trasl);
 		translationBack = translationMatrix(0, 0, -trasl);
-		if (i!=0) traslationToLastBase = translationMatrix(-lastBase[0], lastBase[1], 0);
+		if (i!=0) {
+			traslationToLastBase = translationMatrix(-lastBase[0], 0, (1-lastBase[2]));
+			console.log(-lastBase[0], 0, -(1-lastBase[2]));
+		}
 	}
+	modelViewMatrix = MatrixMult(modelViewMatrix, traslationToLastBase);
     modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
     modelViewMatrix = MatrixMult(modelViewMatrix, rotationMatrix);
     modelViewMatrix = MatrixMult(modelViewMatrix, translationBack);
-	modelViewMatrix = MatrixMult(modelViewMatrix, traslationToLastBase);
 	return modelViewMatrix;
 }
 
