@@ -1,11 +1,13 @@
 var lights = [
 	{
 		position:  [ 0, 0, 1000 ],
-		intensity: [ 1, 1, 1 ]
+		color: [ 1, 1, 1 ],
+		intensity: [ 0.5, 0.5, 0.5 ]
 	},
 	{
 		position:  [ 0, 1000, 1000 ],
-		intensity: [ 1, 1, 1 ]
+		color: [ 1, 1, 1 ],
+		intensity: [ 0.5, 0.5, 0.5 ]
 	}
 ];
 
@@ -113,10 +115,16 @@ class PrimaryRayTracer extends RayTracer
 	draw( trans, pendulums )
 	{
 		for ( var i=1; i<spheres.length; ++i ) {
-			gl.uniform3fv( gl.getUniformLocation( this.prog, 'spheres['+i+'].center' ), [(1+pendulums[i-1].base[0])+pendulums[i-1].x, pendulums[i-1].base[1], (1+pendulums[i-1].base[2])-pendulums[i-1].y] );
+			let lastX = 0;
+			let lastZ = 0;
+			if (i > 1) {
+				lastX = pendulums[i-2].x;
+				lastZ = 1-pendulums[i-2].y;
+			}
+			let nextX = (1+pendulums[i-1].base[0])+pendulums[i-1].x+lastX;
+			let nextZ = (1+pendulums[i-1].base[2])-pendulums[i-1].y+lastZ;
+			gl.uniform3fv( gl.getUniformLocation( this.prog, 'spheres['+i+'].center' ), [nextX, 0, nextZ] );
 		}
-		//this.initProg( raytraceVS, raytraceFS_primary );
-		//gl.useProgram( this.prog );
 		if ( ! this.prog ) return;
 		screenQuad.draw( this.prog, trans );
 	}

@@ -87,7 +87,7 @@
     var boxDrawer;
     var meshDrawer;
     var rt;
-    var useRT = true;
+    var useRT = false;
     var canvas, gl;
     var perspectiveMatrix;	// perspective projection matrix
     var rotX=0, rotY=0, transZ=3, autorot=0;
@@ -180,16 +180,7 @@
         let nextBase = [0, 0];
         let i = 1;
         for (let pendulum of simulation.pendulums){
-            let base;
-            if (pendulum.base[2] == 0.5)
-                base = pendulum.base;
-            else
-                if (meshDrawer.swapyz)
-                    base = [nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
-                else
-                    base = [-nextBase[0]+pendulum.base[0], pendulum.base[1], -(1-nextBase[1])+pendulum.base[2]]
-            meshDrawer.draw( mvp, mv, nrmTrans, i-1, base, pendulum.angle, [nextBase[0], 0, nextBase[1]] );
-            console.log("Pendulum: ", i, " Base: ", base, " NextBase: ", nextBase);
+            meshDrawer.draw( mvp, mv, nrmTrans, i-1, pendulum.angle, [nextBase[0], 0, nextBase[1]] );
             i++;
             nextBase = [pendulum.x, pendulum.y];
         }
@@ -241,6 +232,20 @@
                 var v = 0;
                 for ( var k=0; k<4; ++k ) {
                     v += A[j+4*k] * B[k+4*i];
+                }
+                C.push(v);
+            }
+        }
+        return C;
+    }
+
+    function MatrixMult3D(A, B) {
+        var C = [];
+        for (var i = 0; i < 3; ++i) {
+            for (var j = 0; j < 3; ++j) {
+                var v = 0;
+                for (var k = 0; k < 3; ++k) {
+                    v += A[j + 3 * k] * B[k + 3 * i];
                 }
                 C.push(v);
             }
@@ -558,6 +563,20 @@
                 meshDrawer.setTexture( img );
         }
         DrawScene();
+        if (!param.checked){
+            document.getElementById("lightcontrol").style.display = "block";
+            document.getElementById("lightcontrol").style.width="192px";
+            document.getElementById("lightcontrol").style.height="192px";
+            lightView = new LightView();
+        }else{
+            document.getElementById("lightcontrol").style.display = "none";
+            document.getElementById("lightcontrol").style.width="192px";
+            document.getElementById("lightcontrol").style.height="192px";
+        }
+        document.getElementById("show-box-control").style.display = !param.checked ? "block" : "none";
+        document.getElementById("swap-yz-control").style.display = !param.checked ? "block" : "none";
+        document.getElementById("auto-rotate-control").style.display = !param.checked ? "block" : "none";
+        document.getElementById("rotation-speed-control").style.display = !param.checked ? "block" : "none";
     }
 
     var buffers;
@@ -611,27 +630,40 @@
     
     function SetShininess( param )
     {
-        if (useRT)
-            return;
         var exp = param.value;
-        var s = Math.pow(10,exp/25);
-        document.getElementById('shininess-value').innerText = s.toFixed( s < 10 ? 2 : 0 );
-        meshDrawer.setShininess(s);
+        if (useRT){
+            let scale = exp/100;
+            for(let i = 0; i < lights.length; i++){
+                for(let y = 0; y < 3; y++){
+                    lights[i].intensity[y] = lights[i].color[y]*scale;
+                }
+            }
+            document.getElementById('shininess-value').innerText = exp;
+            rt.init();
+        }else{
+            var s = Math.pow(10,exp/25);
+            document.getElementById('shininess-value').innerText = s.toFixed( s < 10 ? 2 : 0 );
+            meshDrawer.setShininess(s);
+        }
         DrawScene();
     }
 
     function SetMass( param )
     {
-        MASS = param.value;
+        MASS = parseInt(param.value);
         document.getElementById('mass-value').innerText = MASS;
-        DrawScene();
+    }
+
+    function SetDamping( param )
+    {
+        DAMPING = parseFloat(param.value);
+        document.getElementById('damping-value').innerText = DAMPING;
     }
     
     function SetDt( param )
     {
-        dt = param.value;
+        dt = parseFloat(param.value);
         document.getElementById('dt-value').innerText = dt;
-        DrawScene();
     }
     
     ///////////////////////////////////////////////////////////////////////////////////
@@ -748,13 +780,13 @@
     <div id="controls">
     <div class="control-group"><canvas id="lightcontrol"></canvas><div id="lightcontrol-label">Light Direction</div></div>
     <div class="control-group">
-    <div class="control"><input id="Ray-Tracing" name="Ray-Tracing" type="checkbox" onchange="setRT(this)" checked /><label for="Ray-Tracing"> Ray Tracing</label></div>
-    <div class="control"><input id="show-box" name="show-box" type="checkbox" onchange="DrawScene()" checked /><label for="show-box"> Show Box</label></div>
+    <div class="control"><input id="Ray-Tracing" name="Ray-Tracing" type="checkbox" onchange="setRT(this)" /><label for="Ray-Tracing"> Ray Tracing</label></div>
+    <div class="control" id="show-box-control"><input id="show-box" name="show-box" type="checkbox" onchange="DrawScene()" checked /><label for="show-box"> Show Box</label></div>
     <div class="control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
-    <div class="control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
-    <div class="control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
+    <div class="control" id="swap-yz-control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
+    <div class="control" id="auto-rotate-control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
     <div class="control"><input id="start-simulation" name="start-simulation" type="checkbox" onchange="SimulationStep(this)"/><label for="start-simulation"> Simulation</label></div>
-    <div class="control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
+    <div class="control" id="rotation-speed-control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
     <div class="control">
         <span id="shininess-label">Shininess:</span>
         <span id="shininess-value">1</span>
@@ -764,6 +796,11 @@
         <span id="mass-label">Mass:</span>
         <span id="mass-value">1</span>
         <input id="mass" type="range" min="0.5" max="10" value="1" oninput="SetMass(this)"/>
+    </div>
+    <div class="control">
+        <span id="damping-label">Damping:</span>
+        <span id="damping-value">0.1</span>
+        <input id="damping" type="range" min="0.1" max="1.0" value="0.1" step="0.1" oninput="SetDamping(this)"/>
     </div>
     <div class="control">
         <span id="dt-label">dt:</span>

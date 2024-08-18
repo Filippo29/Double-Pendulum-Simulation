@@ -202,20 +202,17 @@ class MeshDrawer
 	// the model-view transformation matrixMV, the same matrix returned
 	// by the GetModelViewProjection function above, and the normal
 	// transformation matrix, which is the inverse-transpose of matrixMV.
-	draw( matrixMVP, matrixMV, matrixNormal, i, shift=[0, 0, 0], angle=0, lastBase=[0, 0, 0] )
+	draw( matrixMVP, matrixMV, matrixNormal, i, angle=0, lastBase=[0, 0, 0] )
 	{
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram(this.program);
 
 		// Set up the traslation vector
 		var traslation = gl.getUniformLocation(this.program, "u_traslation");
-		if (i == 0)
-			gl.uniform3f(traslation, shift[0], shift[1], shift[2]);
-		else
-			gl.uniform3f(traslation, 0, 0, -0.5);
+		gl.uniform3f(traslation, 0, 0, 0.5-i);
 
 		// Set up the matrixMVP
-		matrixMVP = createTransformationMatrix(matrixMVP, shift, angle, this.swapyz, lastBase, i);
+		matrixMVP = createTransformationMatrix(matrixMVP, angle, this.swapyz, lastBase, i);
 		var transUniform = gl.getUniformLocation(this.program, "u_transform");
 		gl.uniformMatrix4fv(transUniform, false, matrixMVP);
 
@@ -232,6 +229,10 @@ class MeshDrawer
 		gl.uniformMatrix4fv(transMVUniform, false, matrixMV);
 
 		// Set up matrixNormal
+		if (this.swapYZ)
+			matrixNormal = MatrixMult3D(matrixNormal, mat4Dto3D(ZRotationMatrix(angle)));
+		else
+        	matrixNormal = MatrixMult3D(matrixNormal, mat4Dto3D(YRotationMatrix(angle)));
 		var transNormalUniform = gl.getUniformLocation(this.program, "u_matrixNormal");
 		gl.uniformMatrix3fv(transNormalUniform, false, matrixNormal);
 
@@ -352,6 +353,14 @@ function ZRotationMatrix(angle) {
 	];
 }
 
+function mat4Dto3D(mat) {
+	let mat3D = [];
+    for (let i = 0; i < 3; i++) {
+        mat3D.push(mat[i * 4], mat[i * 4 + 1], mat[i * 4 + 2]);
+    }
+    return mat3D;
+}
+
 function identityMatrix(dim) {
 	let matrix = [];
 	for (let i = 0; i < dim; i++){
@@ -362,25 +371,24 @@ function identityMatrix(dim) {
 	return matrix;
 }
 
-function createTransformationMatrix(modelViewMatrix, point, angle, swapyz, lastBase, i) {
-	let translationToOrigin;
-    let translationBack;
-	let rotationMatrix;
+function createTransformationMatrix(modelViewMatrix, angle, swapyz, lastBase, i) {
+	let translationToOrigin = identityMatrix(4);
+    let translationBack = identityMatrix(4);
+	let rotationMatrix = identityMatrix(4);
 	let traslationToLastBase = identityMatrix(4);
+	let trasl = 1-i;
 	if (swapyz){
     	rotationMatrix = ZRotationMatrix(angle);
-		point = [point[0], point[2], point[1]];
-		translationToOrigin = translationMatrix(0, point[1]+0.5, 0);
-		translationBack = translationMatrix(0, -point[1]-0.5, 0);
+		translationToOrigin = translationMatrix(0, trasl, 0);
+		translationBack = translationMatrix(0, -trasl, 0);
+		if (i!=0)
+			traslationToLastBase = translationMatrix(lastBase[0], 1-lastBase[2], 0);
 	}else{
 		rotationMatrix = YRotationMatrix(angle);
-		let trasl = i == 0 ? point[2]+0.5 : 0;
 		translationToOrigin = translationMatrix(0, 0, trasl);
 		translationBack = translationMatrix(0, 0, -trasl);
-		if (i!=0) {
-			traslationToLastBase = translationMatrix(-lastBase[0], 0, (1-lastBase[2]));
-			console.log(-lastBase[0], 0, -(1-lastBase[2]));
-		}
+		if (i!=0)
+			traslationToLastBase = translationMatrix(-lastBase[0], 0, 1-lastBase[2]);
 	}
 	modelViewMatrix = MatrixMult(modelViewMatrix, traslationToLastBase);
     modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
