@@ -12,7 +12,7 @@ var raytraceFS_primary = `
 	void main()
 	{
 		if ( use_rt < 0.5 ) {
-		 	gl_FragColor = vec4(1,0,0,1);
+		 	gl_FragColor = vec4(0.8,0,0,1);
 		} else {
 			Ray primary_ray;
 			primary_ray.pos = ray_pos;
@@ -25,10 +25,11 @@ var raytraceFS_primary = `
 var raytraceVS = `
 attribute vec3 p;
 
-attribute float a_use_rt;
+uniform float a_use_rt;
 
 uniform mat4 proj;
 uniform mat4 c2w;
+uniform mat4 w2c;
 varying vec3 ray_pos;
 varying vec3 ray_dir;
 void main()
@@ -36,7 +37,7 @@ void main()
 	if ( a_use_rt > 0.5 ) {
     	gl_Position = proj * vec4(p,1);
 	} else {
-	 	gl_Position = proj * vec4(p,1);
+	 	gl_Position = proj * w2c * vec4(p,1);
 	}
 	vec4 rp = c2w * vec4(0,0,0,1);
 	ray_pos = rp.xyz;
@@ -185,61 +186,5 @@ vec4 RayTracer( Ray ray )
 	} else {
 		return vec4( textureCube( envMap, ray.dir.xzy ).rgb, 0 );	// return the environment color
 	}
-}
-`;
-
-var sphereVS = `
-attribute vec3 p;
-uniform mat4  mvp;
-uniform vec3  center;
-uniform float radius;
-varying vec3 pos;
-varying vec3 normal;
-void main()
-{
-	pos = p*radius + center;
-    gl_Position = mvp * vec4(pos,1);
-	normal = p;
-}
-`;
-
-var sphereFS = `
-precision mediump float;
-struct Material {
-	vec3  k_d;	// diffuse coefficient
-	vec3  k_s;	// specular coefficient
-	float n;	// specular exponent
-};
-struct Light {
-	vec3 position;
-	vec3 intensity;
-};
-uniform samplerCube envMap;
-uniform Light    light;
-uniform vec3     campos;
-uniform Material mtl;
-varying vec3     pos;
-varying vec3     normal;
-void main()
-{
-	vec3 nrm = normalize(normal);
-	vec3 view = normalize( campos - pos );
-	vec3 color = vec3(0,0,0);
-	vec3 L = normalize( light.position - pos );
-	float c = dot( nrm, L );
-	if ( c > 0.0 ) {
-		vec3 clr = c * mtl.k_d;
-		vec3 h = normalize( L + view );
-		float s = dot( nrm, h );
-		if ( s > 0.0 ) {
-			clr += mtl.k_s * pow( s, mtl.n );
-		}
-		color += clr * light.intensity;
-	}
-	if ( mtl.k_s.r + mtl.k_s.g + mtl.k_s.b > 0.0 ) {
-		vec3 dir = reflect( -view, nrm );
-		color += mtl.k_s * textureCube( envMap, dir.xzy ).rgb;
-	}
-	gl_FragColor = vec4(color,1);
 }
 `;

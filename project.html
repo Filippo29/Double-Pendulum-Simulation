@@ -111,7 +111,7 @@
         // Initialize the programs and buffers for drawing
         boxDrawer  = new BoxDrawer();
         if(useRT){
-            rt = new PrimaryRayTracer;
+            rt = new RayTracer;
             rt.init();
         }else{
             meshDrawer = new MeshDrawer();
@@ -226,26 +226,13 @@
     // The arguments A and B are arrays, representing column-major matrices.
     function MatrixMult( A, B )
     {
+        let dim = Math.sqrt(A.length);
         var C = [];
-        for ( var i=0; i<4; ++i ) {
-            for ( var j=0; j<4; ++j ) {
+        for ( var i=0; i<dim; ++i ) {
+            for ( var j=0; j<dim; ++j ) {
                 var v = 0;
-                for ( var k=0; k<4; ++k ) {
-                    v += A[j+4*k] * B[k+4*i];
-                }
-                C.push(v);
-            }
-        }
-        return C;
-    }
-
-    function MatrixMult3D(A, B) {
-        var C = [];
-        for (var i = 0; i < 3; ++i) {
-            for (var j = 0; j < 3; ++j) {
-                var v = 0;
-                for (var k = 0; k < 3; ++k) {
-                    v += A[j + 3 * k] * B[k + 3 * i];
+                for ( var k=0; k<dim; ++k ) {
+                    v += A[j+dim*k] * B[k+dim*i];
                 }
                 C.push(v);
             }
@@ -527,11 +514,6 @@
         if ( param.checked ) {
             timer2 = setInterval( function() {
                     simulation.update();
-                    if (useRT){
-                        console.log(spheres[1]);
-                        spheres[1].center[1] += 0.01;
-                        console.log(spheres[1]);
-                    }
                     DrawScene();
                 }, 50
             );
@@ -577,6 +559,7 @@
         document.getElementById("swap-yz-control").style.display = !param.checked ? "block" : "none";
         document.getElementById("auto-rotate-control").style.display = !param.checked ? "block" : "none";
         document.getElementById("rotation-speed-control").style.display = !param.checked ? "block" : "none";
+        document.getElementById("show-rods-control").style.display = param.checked ? "block" : "none";
     }
 
     var buffers;
@@ -664,6 +647,12 @@
     {
         dt = parseFloat(param.value);
         document.getElementById('dt-value').innerText = dt;
+    }
+
+    function ShowRods( param )
+    {
+        rt.showRods = param.checked;
+        DrawScene();
     }
     
     ///////////////////////////////////////////////////////////////////////////////////
@@ -785,6 +774,7 @@
     <div class="control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
     <div class="control" id="swap-yz-control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
     <div class="control" id="auto-rotate-control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
+    <div class="control" id="show-rods-control" style="display: none;"><input id="show-rods" name="show-rods" type="checkbox" onchange="ShowRods(this)"/><label for="show-rods"> Show Rods</label></div>
     <div class="control"><input id="start-simulation" name="start-simulation" type="checkbox" onchange="SimulationStep(this)"/><label for="start-simulation"> Simulation</label></div>
     <div class="control" id="rotation-speed-control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
     <div class="control">
@@ -798,9 +788,9 @@
         <input id="mass" type="range" min="0.5" max="10" value="1" oninput="SetMass(this)"/>
     </div>
     <div class="control">
-        <span id="damping-label">Damping:</span>
+        <span id="damping-label">Damping/Forcing:</span>
         <span id="damping-value">0.1</span>
-        <input id="damping" type="range" min="0.1" max="1.0" value="0.1" step="0.1" oninput="SetDamping(this)"/>
+        <input id="damping" type="range" min="-1.0" max="1.0" value="0.1" step="0.1" oninput="SetDamping(this)"/>
     </div>
     <div class="control">
         <span id="dt-label">dt:</span>

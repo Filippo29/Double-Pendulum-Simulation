@@ -2,7 +2,7 @@ var lights = [
 	{
 		position:  [ 0, 0, 1000 ],
 		color: [ 1, 1, 1 ],
-		intensity: [ 0.5, 0.5, 0.5 ]
+		intensity: [ 0.5, 0.5, 0.5 ] // initial shininess is 50%
 	},
 	{
 		position:  [ 0, 1000, 1000 ],
@@ -57,6 +57,11 @@ class RayTracer
 	constructor()
 	{
 		this.bounceLimit = 5;
+		this.showRods = document.getElementById('show-rods').checked;
+	}
+	init()
+	{
+		this.initProg( raytraceVS, raytraceFS_primary );
 	}
 	initProg( vs, fs )
 	{
@@ -97,21 +102,6 @@ class RayTracer
 		var proj = gl.getUniformLocation( this.prog, 'proj' );
 		gl.uniformMatrix4fv( proj, false, perspectiveMatrix );
 	}
-	setBounceLimit( bounceLimit )
-	{
-		this.bounceLimit = bounceLimit;
-		if ( ! this.prog ) return;
-		gl.useProgram( this.prog );
-		gl.uniform1i( gl.getUniformLocation( this.prog, 'bounceLimit' ), this.bounceLimit );
-	}
-}
-
-class PrimaryRayTracer extends RayTracer
-{
-	init()
-	{
-		this.initProg( raytraceVS, raytraceFS_primary );
-	}
 	draw( trans, pendulums )
 	{
 		for ( var i=1; i<spheres.length; ++i ) {
@@ -124,9 +114,10 @@ class PrimaryRayTracer extends RayTracer
 			let nextX = (1+pendulums[i-1].base[0])+pendulums[i-1].x+lastX;
 			let nextZ = (1+pendulums[i-1].base[2])-pendulums[i-1].y+lastZ;
 			gl.uniform3fv( gl.getUniformLocation( this.prog, 'spheres['+i+'].center' ), [nextX, 0, nextZ] );
+			console.log(nextX, nextZ);
 		}
 		if ( ! this.prog ) return;
-		screenQuad.draw( this.prog, trans );
+		screenQuad.draw( this.prog, trans, pendulums, this.showRods );
 	}
 }
 
@@ -150,82 +141,49 @@ var screenQuad = {
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rtp), gl.STATIC_DRAW);
 	},
-	draw( prog, trans )
+	draw( prog, trans, pendulums, showRods )
 	{
 		gl.useProgram( prog );
 
 		let loc = gl.getUniformLocation(prog, 'use_rt');
-		let aloc = gl.getAttribLocation(prog, 'a_use_rt');
+		let aloc = gl.getUniformLocation(prog, 'a_use_rt');
 		gl.uniform1f(loc, 1.0);
-		gl.vertexAttrib1f(aloc, 1.0);
+		gl.uniform1f(aloc, 1.0);
 
 		gl.uniformMatrix4fv( gl.getUniformLocation( prog, 'c2w' ), false, trans.camToWorld );
+		gl.uniformMatrix4fv( gl.getUniformLocation( prog, 'w2c' ), false, trans.worldToCam );
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.vbuf );
 		var p = gl.getAttribLocation ( prog, 'p' );
 		gl.vertexAttribPointer( p, 3, gl.FLOAT, false, 0, 0 );
 		gl.enableVertexAttribArray( p );
 		gl.drawArrays( gl.TRIANGLES, 0, 6 );
-
+		if (!showRods)
+			return;
 		gl.uniform1f(loc, 0.0);
-		gl.vertexAttrib1f(aloc, 0.0);
-		const line = new Float32Array([
-			-1, -1, -1,
-			1, 1, 2
-		]);
-		const lineBuff = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, lineBuff);
-		gl.bufferData(gl.ARRAY_BUFFER, line, gl.STATIC_DRAW);
-		const positionAttribLoc = gl.getAttribLocation(prog, 'p');
-		gl.vertexAttribPointer(positionAttribLoc, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(positionAttribLoc);
-		gl.drawArrays(gl.LINES, 0, 2);
-	}
-};
-
-class SphereProg
-{
-	init()
-	{
-		this.mvp     = gl.getUniformLocation( this.prog, 'mvp' );
-		this.campos  = gl.getUniformLocation( this.prog, 'campos' );
-		this.center  = gl.getUniformLocation( this.prog, 'center' );
-		this.radius  = gl.getUniformLocation( this.prog, 'radius' );
-		this.mtl_k_d = gl.getUniformLocation( this.prog, 'mtl.k_d' );
-		this.mtl_k_s = gl.getUniformLocation( this.prog, 'mtl.k_s' );
-		this.mtl_n   = gl.getUniformLocation( this.prog, 'mtl.n' );
-		this.vp      = gl.getAttribLocation ( this.prog, 'p' );
-	}
-	setTrans( mvp, campos )
-	{
-		gl.useProgram( this.prog );
-		gl.uniformMatrix4fv( this.mvp, false, mvp );
-		gl.uniform3fv( this.campos, campos );
-	}
-	setLight( pos, intens )
-	{
-		gl.useProgram( this.prog );
-		gl.uniform3fv( gl.getUniformLocation( this.prog, 'light.position'  ), pos    );
-		gl.uniform3fv( gl.getUniformLocation( this.prog, 'light.intensity' ), intens );
-	}
-	draw( sphere )
-	{
-		gl.useProgram( this.prog );
-		gl.uniform3fv( this.center,  sphere.center  );
-		gl.uniform1f ( this.radius,  sphere.radius  );
-		gl.uniform3fv( this.mtl_k_d, sphere.mtl.k_d );
-		gl.uniform3fv( this.mtl_k_s, sphere.mtl.k_s );
-		gl.uniform1f ( this.mtl_n,   sphere.mtl.n   );
-		triSphere.draw( this.vp );
-	}
-};
-
-class SphereDrawer extends SphereProg
-{
-	constructor()
-	{
-		super();
-		this.prog = InitShaderProgramFromScripts( sphereVS, sphereFS );
-		this.init();
+		gl.uniform1f(aloc, 0.0);
+		for(i=0; i<pendulums.length; i++) {
+			let line;
+			if (i == 0) {
+				line = new Float32Array([
+					(1+pendulums[i].base[0]), 0, (1+pendulums[i].base[2]),
+					(1+pendulums[i].base[0])+pendulums[i].x, 0, (1+pendulums[i].base[2])-pendulums[i].y
+				]);
+			}else{
+				let lastX = pendulums[i-1].x;
+				let lastZ = 1-pendulums[i-1].y;
+				line = new Float32Array([
+					(1+pendulums[i-1].base[0])+pendulums[i-1].x, 0, (1+pendulums[i-1].base[2])-pendulums[0].y,
+					(1+pendulums[i].base[0])+pendulums[i].x+lastX, 0, (1+pendulums[i].base[2])-pendulums[i].y+lastZ
+				]);
+				console.log(line);
+			}
+			const lineBuff = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, lineBuff);
+			gl.bufferData(gl.ARRAY_BUFFER, line, gl.STATIC_DRAW);
+			gl.vertexAttribPointer(p, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(p);
+			gl.drawArrays(gl.LINES, 0, 2);
+		}
 	}
 };
 

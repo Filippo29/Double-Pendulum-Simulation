@@ -230,9 +230,9 @@ class MeshDrawer
 
 		// Set up matrixNormal
 		if (this.swapYZ)
-			matrixNormal = MatrixMult3D(matrixNormal, mat4Dto3D(ZRotationMatrix(angle)));
+			matrixNormal = MatrixMult(matrixNormal, mat4Dto3D(ZRotationMatrix(angle)));
 		else
-        	matrixNormal = MatrixMult3D(matrixNormal, mat4Dto3D(YRotationMatrix(angle)));
+        	matrixNormal = MatrixMult(matrixNormal, mat4Dto3D(YRotationMatrix(angle))); // Rotate normals to match the object rotation and have the correct lighting
 		var transNormalUniform = gl.getUniformLocation(this.program, "u_matrixNormal");
 		gl.uniformMatrix3fv(transNormalUniform, false, matrixNormal);
 
