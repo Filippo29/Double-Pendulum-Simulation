@@ -382,13 +382,13 @@ function createTransformationMatrix(modelViewMatrix, angle, swapyz, lastBase, i)
 		translationToOrigin = translationMatrix(0, trasl, 0);
 		translationBack = translationMatrix(0, -trasl, 0);
 		if (i!=0)
-			traslationToLastBase = translationMatrix(lastBase[0], 1-lastBase[2], 0);
+			traslationToLastBase = translationMatrix(lastBase[0], lastBase[2], 0);
 	}else{
 		rotationMatrix = YRotationMatrix(angle);
 		translationToOrigin = translationMatrix(0, 0, trasl);
 		translationBack = translationMatrix(0, 0, -trasl);
 		if (i!=0)
-			traslationToLastBase = translationMatrix(-lastBase[0], 0, 1-lastBase[2]);
+			traslationToLastBase = translationMatrix(-lastBase[0], 0, lastBase[2]);
 	}
 	modelViewMatrix = MatrixMult(modelViewMatrix, traslationToLastBase);
     modelViewMatrix = MatrixMult(modelViewMatrix, translationToOrigin);
@@ -410,6 +410,7 @@ class Pendulum
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
+		this.angularAccel = 0;
 		this.angle = initialAngle;
 		this.x = undefined;
 		this.y = undefined;
@@ -425,18 +426,59 @@ class Pendulum
 	update(index, pendulums)
 	{
 		// Compute the new angle
+		let nPendulums = pendulums.length;
 		let angularAccel = 0;
 		if (index == 0){
-			let otherAngle = pendulums[1].angle;
-			let otherAngularVelocity = pendulums[1].angularVelocity;
+			let otherAngle = nPendulums > 1 ? pendulums[1].angle : 0;
+			let otherAngularVelocity = nPendulums > 1 ? pendulums[1].angularVelocity : 0;
 			angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
 		}else{
-			let otherAngle = pendulums[0].angle;
-			let otherAngularVelocity = pendulums[0].angularVelocity;
+			let otherAngle = pendulums[index-1].angle;
+			let otherAngularVelocity = pendulums[index-1].angularVelocity;
 			angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
 		}
 		this.angularVelocity += angularAccel * dt;
 		this.angle += this.angularVelocity * dt;
+		this.angle %= 2*Math.PI
+		this.computeCoord();
+	}
+
+	update2(index, pendulums)
+	{
+		let nPendulums = pendulums.length;
+		let term1 = 0;
+		let M_i = MASS*(nPendulums-index);
+		for (let j = 0; j < index; j++){
+			let M_j = MASS*(nPendulums-j);
+			let len_j = pendulums[j].length;
+			let angAcc_j = pendulums[j].angularAccel;
+			term1 += M_j * len_j * angAcc_j * Math.cos(pendulums[index].angle - pendulums[j].angle);
+		}
+		term1 /= (M_i * pendulums[index].length);
+
+		let term2 = 0;
+		for (let j = index+1; j < nPendulums; j++){
+			let len_j = pendulums[j].length;
+			let angVel_j = pendulums[j].angularVelocity;
+			term2 += MASS * len_j * (angVel_j * angVel_j) * Math.sin(pendulums[index].angle - pendulums[j].angle);
+		}
+		term2 /= (M_i * pendulums[index].length);
+		
+		this.angularAccel = (-GRAVITY * Math.sin(pendulums[index].angle) / pendulums[index].length) - term1 - term2 - DAMPING * pendulums[index].angularVelocity;
+		this.angularVelocity += this.angularAccel * dt;
+		this.angle += this.angularVelocity * dt;
+		this.angle %= 2*Math.PI
+		this.computeCoord();
+	}
+
+	update3(index, pendulums)
+	{
+		if (index == 0)
+			this.angularAccel = (-GRAVITY * Math.sin(this.angle) / this.length) - DAMPING * this.angularVelocity;
+		this.angularAccel = (-GRAVITY * Math.sin(pendulums[index].angle) / pendulums[index].length) - term1 - DAMPING * pendulums[index].angularVelocity;
+		this.angularVelocity += this.angularAccel * dt;
+		this.angle += this.angularVelocity * dt;
+		this.angle %= 2*Math.PI
 		this.computeCoord();
 	}
 }
@@ -448,12 +490,20 @@ class Simulation
 		this.num_pendulums = num_pendulums;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
-			this.pendulums.push(new Pendulum([0, 0, 0.5-i], -1+i*3));
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i], Math.PI/2));
 	}
 
 	update()
 	{
 		for (let i = 0; i < this.num_pendulums; i++)
 			this.pendulums[i].update(i, this.pendulums);
+	}
+
+	setNumPendulums(num_pendulums)
+	{
+		this.num_pendulums = num_pendulums;
+		this.pendulums = [];
+		for(let i = 0; i < this.num_pendulums; i++)
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i], Math.PI/2));
 	}
 }

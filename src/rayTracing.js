@@ -14,6 +14,16 @@ var lights = [
 const pendolumLen = 0.5;
 const pendulumRad = 0.2;
 
+var bigSphere = {
+		center: [ 0, 0, -10001.0 ],
+		radius: 10000.0,
+		mtl: {
+			k_d: [ 0.1, 0.1, 0.2 ],
+			k_s: [ 0.2, 0.2, 0.2 ],
+			n: 10
+		}
+	}
+
 var fixed_spheres = [
 	{
 		center: [ 0, 0, -10001.0 ],
@@ -44,12 +54,38 @@ var fixed_spheres = [
 	},
 ];
 
-var spheres = fixed_spheres.slice();
+var spheres = [bigSphere];
 var maxBounceLimit = 3;
 var perspectiveMatrix;
 
-for (let i = 1; i < spheres.length; i++) {
-	spheres[i].center = [0, 0, 0.5-i*pendolumLen];
+for (let i = 0; i < simulation.pendulums.length; i++) {
+	spheres.push({
+		center: [0, 0, 0.5-i*pendolumLen],
+		radius: pendulumRad,
+		mtl: {
+			k_d: [0.5, 0.0, 0.0],
+			k_s: [0.8, 0.8, 0.8],
+			n: 100
+		}
+	});
+}
+
+function updateSpheres(){
+	bigSphere.radius = 10002.0-simulation.pendulums.length;
+	let pendulums = simulation.pendulums;
+	let nSpheres = [bigSphere];
+	for (let i = 0; i < pendulums.length; i++) {
+		nSpheres.push({
+			center: [0, 0, 0.5-i*pendolumLen],
+			radius: pendulumRad,
+			mtl: {
+				k_d: [0.5, 0.0, 0.0],
+				k_s: [0.8, 0.8, 0.8],
+				n: 100
+			}
+		});
+	}
+	spheres = nSpheres;
 }
 
 class RayTracer
@@ -104,17 +140,16 @@ class RayTracer
 	}
 	draw( trans, pendulums )
 	{
+		let lastX = 0;
+		let lastZ = 0;
 		for ( var i=1; i<spheres.length; ++i ) {
-			let lastX = 0;
-			let lastZ = 0;
 			if (i > 1) {
-				lastX = pendulums[i-2].x;
-				lastZ = 1-pendulums[i-2].y;
+				lastX += pendulums[i-2].x;
+				lastZ += 1-pendulums[i-2].y;
 			}
 			let nextX = (1+pendulums[i-1].base[0])+pendulums[i-1].x+lastX;
 			let nextZ = (1+pendulums[i-1].base[2])-pendulums[i-1].y+lastZ;
 			gl.uniform3fv( gl.getUniformLocation( this.prog, 'spheres['+i+'].center' ), [nextX, 0, nextZ] );
-			console.log(nextX, nextZ);
 		}
 		if ( ! this.prog ) return;
 		screenQuad.draw( this.prog, trans, pendulums, this.showRods );
@@ -161,6 +196,8 @@ var screenQuad = {
 			return;
 		gl.uniform1f(loc, 0.0);
 		gl.uniform1f(aloc, 0.0);
+		let lastX = 0;
+		let lastZ = 0;
 		for(i=0; i<pendulums.length; i++) {
 			let line;
 			if (i == 0) {
@@ -169,13 +206,14 @@ var screenQuad = {
 					(1+pendulums[i].base[0])+pendulums[i].x, 0, (1+pendulums[i].base[2])-pendulums[i].y
 				]);
 			}else{
-				let lastX = pendulums[i-1].x;
-				let lastZ = 1-pendulums[i-1].y;
+				let startX = (1+pendulums[i-1].base[0])+pendulums[i-1].x + lastX;
+				let startZ = (1+pendulums[i-1].base[2])-pendulums[i-1].y + lastZ;
+				lastX += pendulums[i-1].x;
+				lastZ += 1-pendulums[i-1].y;
 				line = new Float32Array([
-					(1+pendulums[i-1].base[0])+pendulums[i-1].x, 0, (1+pendulums[i-1].base[2])-pendulums[0].y,
+					startX, 0, startZ,
 					(1+pendulums[i].base[0])+pendulums[i].x+lastX, 0, (1+pendulums[i].base[2])-pendulums[i].y+lastZ
 				]);
-				console.log(line);
 			}
 			const lineBuff = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, lineBuff);

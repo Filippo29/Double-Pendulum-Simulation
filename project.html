@@ -6,7 +6,6 @@
     <script type="text/javascript" id="includedscript" src="rtShaders/shader.js"></script>
     <script type="text/javascript" id="includedscript" src="src/project.js"></script>
     <script type="text/javascript" id="includedscript" src="src/utils.js"></script>
-    <script type="text/javascript" id="includedscript" src="src/rayTracing.js"></script>
     <script type="text/javascript" src="src/obj.js"></script>
     
     <script type="text/javascript">
@@ -178,11 +177,10 @@
         // Draw the curve and then the line segments that connect the control points.
         var nrmTrans = [ mv[0],mv[1],mv[2], mv[4],mv[5],mv[6], mv[8],mv[9],mv[10] ];
         let nextBase = [0, 0];
-        let i = 1;
-        for (let pendulum of simulation.pendulums){
-            meshDrawer.draw( mvp, mv, nrmTrans, i-1, pendulum.angle, [nextBase[0], 0, nextBase[1]] );
-            i++;
-            nextBase = [pendulum.x, pendulum.y];
+        for (let i = 0; i < simulation.pendulums.length; i++){
+            let pendulum = simulation.pendulums[i];
+            meshDrawer.draw( mvp, mv, nrmTrans, i, pendulum.angle, [nextBase[0], 0, nextBase[1]] );
+            nextBase = [pendulum.x + nextBase[0], 1-pendulum.y + nextBase[1]];
         }
         if ( showBox.checked ) {
             boxDrawer.draw( mvp );
@@ -648,6 +646,15 @@
         document.getElementById('dt-value').innerText = dt;
     }
 
+    function SetNumPendulums( param )
+    {
+        simulation.setNumPendulums(parseInt(param.value));
+        document.getElementById('num-pendulums-value').innerText = param.value;
+        if(useRT)
+            updateSpheres();
+        DrawScene();
+    }
+
     function ShowRods( param )
     {
         rt.showRods = param.checked;
@@ -656,6 +663,7 @@
     
     ///////////////////////////////////////////////////////////////////////////////////
     </script>
+    <script type="text/javascript" id="includedscript" src="src/rayTracing.js"></script>
     
     <style>
     html {
@@ -795,6 +803,11 @@
         <span id="dt-label">dt:</span>
         <span id="dt-value">0.005</span>
         <input id="dt-range" type="range" min="0.005" max="0.01" value="0.005" step="0.001" oninput="SetDt(this)"/></div>
+    </div>
+    <div class="control">
+        <span id="num-pendulums-label">Pendulums number:</span>
+        <span id="num-pendulums-value">2</span>
+        <input id="num-pendulums-range" type="range" min="1" max="10" value="2" oninput="SetNumPendulums(this)"/></div>
     </div>
     <div class="control-group">
     <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>
