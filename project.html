@@ -650,8 +650,10 @@
     {
         simulation.setNumPendulums(parseInt(param.value));
         document.getElementById('num-pendulums-value').innerText = param.value;
-        if(useRT)
+        if(useRT){
             updateSpheres();
+            rt.init()
+        }
         DrawScene();
     }
 

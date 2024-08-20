@@ -442,45 +442,6 @@ class Pendulum
 		this.angle %= 2*Math.PI
 		this.computeCoord();
 	}
-
-	update2(index, pendulums)
-	{
-		let nPendulums = pendulums.length;
-		let term1 = 0;
-		let M_i = MASS*(nPendulums-index);
-		for (let j = 0; j < index; j++){
-			let M_j = MASS*(nPendulums-j);
-			let len_j = pendulums[j].length;
-			let angAcc_j = pendulums[j].angularAccel;
-			term1 += M_j * len_j * angAcc_j * Math.cos(pendulums[index].angle - pendulums[j].angle);
-		}
-		term1 /= (M_i * pendulums[index].length);
-
-		let term2 = 0;
-		for (let j = index+1; j < nPendulums; j++){
-			let len_j = pendulums[j].length;
-			let angVel_j = pendulums[j].angularVelocity;
-			term2 += MASS * len_j * (angVel_j * angVel_j) * Math.sin(pendulums[index].angle - pendulums[j].angle);
-		}
-		term2 /= (M_i * pendulums[index].length);
-		
-		this.angularAccel = (-GRAVITY * Math.sin(pendulums[index].angle) / pendulums[index].length) - term1 - term2 - DAMPING * pendulums[index].angularVelocity;
-		this.angularVelocity += this.angularAccel * dt;
-		this.angle += this.angularVelocity * dt;
-		this.angle %= 2*Math.PI
-		this.computeCoord();
-	}
-
-	update3(index, pendulums)
-	{
-		if (index == 0)
-			this.angularAccel = (-GRAVITY * Math.sin(this.angle) / this.length) - DAMPING * this.angularVelocity;
-		this.angularAccel = (-GRAVITY * Math.sin(pendulums[index].angle) / pendulums[index].length) - term1 - DAMPING * pendulums[index].angularVelocity;
-		this.angularVelocity += this.angularAccel * dt;
-		this.angle += this.angularVelocity * dt;
-		this.angle %= 2*Math.PI
-		this.computeCoord();
-	}
 }
 
 class Simulation
