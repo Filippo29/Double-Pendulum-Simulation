@@ -88,6 +88,7 @@
     var meshDrawer;
     var rt;
     var useRT = false;
+    var log = false;
     var canvas, gl;
     var perspectiveMatrix;	// perspective projection matrix
     var rotX=0, rotY=0, transZ=3, autorot=0;
@@ -187,6 +188,9 @@
         if ( showBox.checked ) {
             boxDrawer.draw( mvp );
         }
+
+        if (log)
+            printLog();
     }
     
     // This is a helper function for compiling the given vertex and fragment shader source code into a program.
@@ -533,6 +537,32 @@
         DrawScene();
     }
 
+    function LogPendulums( param )
+    {
+        log = param.checked;
+        printLog();
+    }
+
+    function printLog()
+    {
+        let out = {
+            t: simulation.t,
+            pendulums: []
+        }
+        for (let i = 0; i < simulation.pendulums.length; i++)
+        {
+            let pendulum = simulation.pendulums[i];
+            let info = {
+                id: i,
+                angle: pendulum.angle,
+                angular_velocity: pendulum.angularVelocity,
+                angulat_acceleration: pendulum.angulatAccel
+            }
+            out.pendulums[out.pendulums.length] = info;
+        }
+        console.log(out);
+    }
+
     function setRT(param) 
     {
         useRT = param.checked;
@@ -775,6 +805,7 @@
     <div class="control" id="auto-rotate-control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
     <div class="control" id="show-rods-control" style="display: none;"><input id="show-rods" name="show-rods" type="checkbox" onchange="ShowRods(this)"/><label for="show-rods"> Show Rods</label></div>
     <div class="control"><input id="start-simulation" name="start-simulation" type="checkbox" onchange="SimulationStep(this)"/><label for="start-simulation"> Simulation</label></div>
+    <div class="control"><input id="show-logs" name="show-logs" type="checkbox" onchange="LogPendulums(this)"/><label for="show-logs"> Log Pendulums</label></div>
     <div class="control" id="rotation-speed-control"><input id="rotation-speed" type="range" min="1" max="100" value="50" disabled/></div>
     <div class="control">
         <span id="shininess-label">Shininess:</span>

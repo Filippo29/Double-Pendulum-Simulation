@@ -114,10 +114,11 @@ class RayTracer
 			let nextX = (1+pendulums[i-1].base[0])+pendulums[i-1].x+lastX;
 			let nextZ = (1+pendulums[i-1].base[2])-pendulums[i-1].y+lastZ;
 			gl.uniform3fv( gl.getUniformLocation( this.prog, 'spheres['+i+'].center' ), [nextX, 0, nextZ] );
-			console.log(nextX, nextZ);
 		}
 		if ( ! this.prog ) return;
 		screenQuad.draw( this.prog, trans, pendulums, this.showRods );
+		if(log)
+			printLog();
 	}
 }
 
@@ -175,7 +176,6 @@ var screenQuad = {
 					(1+pendulums[i-1].base[0])+pendulums[i-1].x, 0, (1+pendulums[i-1].base[2])-pendulums[0].y,
 					(1+pendulums[i].base[0])+pendulums[i].x+lastX, 0, (1+pendulums[i].base[2])-pendulums[i].y+lastZ
 				]);
-				console.log(line);
 			}
 			const lineBuff = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, lineBuff);

@@ -410,6 +410,7 @@ class Pendulum
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
+		this.angulatAccel = 0;
 		this.angle = initialAngle;
 		this.x = undefined;
 		this.y = undefined;
@@ -425,17 +426,16 @@ class Pendulum
 	update(index, pendulums)
 	{
 		// Compute the new angle
-		let angularAccel = 0;
 		if (index == 0){
 			let otherAngle = pendulums[1].angle;
 			let otherAngularVelocity = pendulums[1].angularVelocity;
-			angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
+			this.angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
 		}else{
 			let otherAngle = pendulums[0].angle;
 			let otherAngularVelocity = pendulums[0].angularVelocity;
-			angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
+			this.angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
 		}
-		this.angularVelocity += angularAccel * dt;
+		this.angularVelocity += this.angularAccel * dt;
 		this.angle += this.angularVelocity * dt;
 		this.computeCoord();
 	}
@@ -446,6 +446,7 @@ class Simulation
 	constructor(num_pendulums=2)
 	{
 		this.num_pendulums = num_pendulums;
+		this.t = 0.0;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
 			this.pendulums.push(new Pendulum([0, 0, 0.5-i], -1+i*3));
@@ -455,5 +456,6 @@ class Simulation
 	{
 		for (let i = 0; i < this.num_pendulums; i++)
 			this.pendulums[i].update(i, this.pendulums);
+		this.t += dt;
 	}
 }
