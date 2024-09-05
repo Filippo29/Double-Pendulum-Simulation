@@ -92,6 +92,7 @@
     var canvas, gl;
     var perspectiveMatrix;	// perspective projection matrix
     var rotX=0, rotY=0, transZ=3, autorot=0;
+    var data = "id,angle,angular_velocity,angular_acceleration\n";
     
     // Called once to initialize
     function InitWebGL()
@@ -556,9 +557,10 @@
                 id: i,
                 angle: pendulum.angle,
                 angular_velocity: pendulum.angularVelocity,
-                angulat_acceleration: pendulum.angulatAccel
+                angular_acceleration: pendulum.angularAccel
             }
             out.pendulums[out.pendulums.length] = info;
+            data += i + "," + pendulum.angle + "," + pendulum.angularVelocity + "," + pendulum.angularAccel + "\n";
         }
         console.log(out);
     }
@@ -683,6 +685,26 @@
         rt.showRods = param.checked;
         DrawScene();
     }
+
+    function restart()
+    {
+        theta1 = degrees_to_radians(parseFloat(document.getElementById('theta1').value));
+        theta2 = degrees_to_radians(parseFloat(document.getElementById('theta2').value));
+        simulation = new Simulation(2, [theta1, theta2]);
+        data = "id,angle,angular_velocity,angular_acceleration\n";
+        DrawScene();
+    }
+
+    function downlaod(){
+        const blob = new Blob([data], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'simulation.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function degrees_to_radians(degrees) { return degrees * (Math.PI/180); }
     
     ///////////////////////////////////////////////////////////////////////////////////
     </script>
@@ -828,13 +850,22 @@
         <input id="dt-range" type="range" min="0.005" max="0.01" value="0.005" step="0.001" oninput="SetDt(this)"/></div>
     </div>
     <div class="control-group">
-    <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>
-    <div class="control">Texture image:<br/><input id="texture" type="file" onchange="LoadTexture(this)" accept="image/*"/></div>
+        <span id="theta1-label">Theta 1 (deg):</span>
+        <input id="theta1" type="number" value="45"/>
+        <span id="theta2-label">Theta 2 (deg):</span>
+        <input id="theta2" type="number" value="45"/>
+        <input id="restartBtn" type="button" onclick="restart()" value="Restart"/>
     </div>
     <div class="control-group">
-    <img id="texture-img" />
+        <span id="download-label">Download history:</span>
+        <input id="downloadBtn" type="button" onclick="downlaod()" value="Download"/>
     </div>
+    <div class="control-group">
+        <div class="control">OBJ model:<br/><input id="obj" type="file" onchange="LoadObj(this)" accept=".obj"/></div>
+        <div class="control">Texture image:<br/><input id="texture" type="file" onchange="LoadTexture(this)" accept="image/*"/></div>
     </div>
+    <div class="control-group">
+        <img id="texture-img" />
     </div>
     </body>
     </html>

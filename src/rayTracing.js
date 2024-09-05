@@ -28,7 +28,7 @@ var fixed_spheres = [
 		center: [ 0, 0, 0 ],
 		radius: pendulumRad,
 		mtl: {
-			k_d: [ 0.5, 0.0, 0.0 ],
+			k_d: [ Math.random(), Math.random(), Math.random() ],
 			k_s: [ 0.8, 0.8, 0.8 ],
 			n: 100
 		}
@@ -37,7 +37,7 @@ var fixed_spheres = [
 		center: [ 0, 0, 0 ],
 		radius: pendulumRad,
 		mtl: {
-			k_d: [ 0.5, 0.0, 0.0 ],
+			k_d: [ Math.random(), Math.random(), Math.random() ],
 			k_s: [ 0.8, 0.8, 0.8 ],
 			n: 100
 		}

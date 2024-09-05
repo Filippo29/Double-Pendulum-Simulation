@@ -410,7 +410,7 @@ class Pendulum
 		this.base = base;
 		this.length = PENDULUM_LENGTH;
 		this.angularVelocity = 0;
-		this.angulatAccel = 0;
+		this.angularAccel = 0;
 		this.angle = initialAngle;
 		this.x = undefined;
 		this.y = undefined;
@@ -443,13 +443,13 @@ class Pendulum
 
 class Simulation
 {
-	constructor(num_pendulums=2)
+	constructor(num_pendulums=2, initial_angles=[degrees_to_radians(45), degrees_to_radians(45)])
 	{
 		this.num_pendulums = num_pendulums;
 		this.t = 0.0;
 		this.pendulums = [];
 		for(let i = 0; i < this.num_pendulums; i++)
-			this.pendulums.push(new Pendulum([0, 0, 0.5-i], -1+i*3));
+			this.pendulums.push(new Pendulum([0, 0, 0.5-i], initial_angles[i]));
 	}
 
 	update()
