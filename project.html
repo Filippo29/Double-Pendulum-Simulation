@@ -519,7 +519,7 @@
             timer2 = setInterval( function() {
                     simulation.update();
                     DrawScene();
-                }, 50
+                }, 20
             );
         } else {
             clearInterval( timer2 );
@@ -587,6 +587,7 @@
             document.getElementById("lightcontrol").style.height="192px";
         }
         document.getElementById("show-box-control").style.display = !param.checked ? "block" : "none";
+        document.getElementById("show-texture-control").style.display = !param.checked ? "block" : "none";
         document.getElementById("swap-yz-control").style.display = !param.checked ? "block" : "none";
         document.getElementById("auto-rotate-control").style.display = !param.checked ? "block" : "none";
         document.getElementById("rotation-speed-control").style.display = !param.checked ? "block" : "none";
@@ -664,8 +665,14 @@
 
     function SetMass( param )
     {
-        MASS = parseInt(param.value);
-        document.getElementById('mass-value').innerText = MASS;
+        M1 = parseInt(param.value);
+        document.getElementById('mass-value').innerText = M1;
+    }
+
+    function SetMass2( param )
+    {
+        M2 = parseInt(param.value);
+        document.getElementById('mass2-value').innerText = M2;
     }
 
     function SetDamping( param )
@@ -822,7 +829,7 @@
     <div class="control-group">
     <div class="control"><input id="Ray-Tracing" name="Ray-Tracing" type="checkbox" onchange="setRT(this)" /><label for="Ray-Tracing"> Ray Tracing</label></div>
     <div class="control" id="show-box-control"><input id="show-box" name="show-box" type="checkbox" onchange="DrawScene()" checked /><label for="show-box"> Show Box</label></div>
-    <div class="control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
+    <div class="control" id="show-texture-control"><input id="show-texture" name="show-texture" type="checkbox" onchange="ShowTexture(this)" checked /><label for="show-texture"> Show Texture</label></div>
     <div class="control" id="swap-yz-control"><input id="swap-yz" name="swap-yz" type="checkbox" onchange="SwapYZ(this)" /><label for="swap-yz"> Swap Y-Z Axes</label></div>
     <div class="control" id="auto-rotate-control"><input id="auto-rotate" name="auto-rotate" type="checkbox" onchange="AutoRotate(this)"/><label for="auto-rotate"> Auto Rotation</label></div>
     <div class="control" id="show-rods-control" style="display: none;"><input id="show-rods" name="show-rods" type="checkbox" onchange="ShowRods(this)"/><label for="show-rods"> Show Rods</label></div>
@@ -835,9 +842,14 @@
         <input id="shininess-exp" type="range" min="0" max="100" value="50" oninput="SetShininess(this)"/>
     </div>
     <div class="control">
-        <span id="mass-label">Mass:</span>
+        <span id="mass-label">Mass 1:</span>
         <span id="mass-value">1</span>
-        <input id="mass" type="range" min="0.5" max="10" value="1" oninput="SetMass(this)"/>
+        <input id="mass" type="range" min="1" max="10" value="1" oninput="SetMass(this)"/>
+    </div>
+    <div class="control">
+        <span id="mass2-label">Mass 2:</span>
+        <span id="mass2-value">1</span>
+        <input id="mass2" type="range" min="1" max="10" value="1" oninput="SetMass2(this)"/>
     </div>
     <div class="control">
         <span id="damping-label">Damping/Forcing:</span>

@@ -399,9 +399,29 @@ function createTransformationMatrix(modelViewMatrix, angle, swapyz, lastBase, i)
 
 GRAVITY = 9.81; // m/s^2
 PENDULUM_LENGTH = 1; // m
-MASS = 1;
+M1 = 1;
+M2 = 1;
 DAMPING = 0.1;
 dt = 0.005; // s
+
+function rungeKutta4(angAcc, omega0, theta0) {
+    let k1_omega = dt * angAcc;
+    let k1_theta = dt * omega0;
+    
+    let k2_omega = dt * angAcc;
+    let k2_theta = dt * (omega0 + k1_omega / 2);
+    
+    let k3_omega = dt * angAcc;
+    let k3_theta = dt * (omega0 + k2_omega / 2);
+    
+    let k4_omega = dt * angAcc;
+    let k4_theta = dt * (omega0 + k3_omega);
+    
+    let newOmega = omega0 + (1/6) * (k1_omega + 2 * k2_omega + 2 * k3_omega + k4_omega);
+    let newTheta = theta0 + (1/6) * (k1_theta + 2 * k2_theta + 2 * k3_theta + k4_theta);
+    
+    return [newOmega, newTheta];
+}
 
 class Pendulum
 {
@@ -425,18 +445,19 @@ class Pendulum
 
 	update(index, pendulums)
 	{
-		// Compute the new angle
 		if (index == 0){
 			let otherAngle = pendulums[1].angle;
 			let otherAngularVelocity = pendulums[1].angularVelocity;
-			this.angularAccel = (-GRAVITY*(2*MASS+MASS)*Math.sin(this.angle)-MASS*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*MASS*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(this.angle-otherAngle))));
+			this.angularAccel = (-GRAVITY*(2*M1+M2)*Math.sin(this.angle)-M2*GRAVITY*Math.sin(this.angle-2*otherAngle)-2*Math.sin(this.angle-otherAngle)*M2*(this.length*otherAngularVelocity*otherAngularVelocity+this.length*Math.cos(this.angle-otherAngle)*this.angularVelocity*this.angularVelocity)-this.angularVelocity*DAMPING)/(this.length*(2*M1+M2-M2*Math.cos(2*(this.angle-otherAngle))));
 		}else{
 			let otherAngle = pendulums[0].angle;
 			let otherAngularVelocity = pendulums[0].angularVelocity;
-			this.angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(MASS+MASS)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(MASS+MASS)*Math.cos(otherAngle)+this.length*MASS*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*MASS+MASS-MASS*Math.cos(2*(otherAngle-this.angle))));
+			this.angularAccel = (2*Math.sin(otherAngle-this.angle)*(this.length*(M1+M2)*otherAngularVelocity*otherAngularVelocity+GRAVITY*(M1+M2)*Math.cos(otherAngle)+this.length*M2*this.angularVelocity*this.angularVelocity*Math.cos(otherAngle-this.angle))-this.angularVelocity*DAMPING)/(this.length*(2*M1+M2-M2*Math.cos(2*(otherAngle-this.angle))));
 		}
-		this.angularVelocity += this.angularAccel * dt;
-		this.angle += this.angularVelocity * dt;
+
+		let ret = rungeKutta4(this.angularAccel, this.angularVelocity, this.angle);
+		this.angularVelocity = ret[0];
+		this.angle = ret[1];
 		this.computeCoord();
 	}
 }
